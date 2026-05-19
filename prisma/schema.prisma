@@ -1,0 +1,266 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Enums
+enum UserRole {
+  ADMIN
+  MEMBER
+  GUEST
+}
+
+enum MembershipType {
+  BASIC
+  PREMIUM
+  ENTERPRISE
+  DAY_PASS
+  HOUR_PASS
+}
+
+enum MembershipStatus {
+  ACTIVE
+  EXPIRED
+  CANCELLED
+  PENDING
+}
+
+enum SpaceType {
+  DESK
+  PRIVATE_OFFICE
+  MEETING_ROOM
+  PHONE_BOOTH
+  EVENT_SPACE
+}
+
+enum DeviceType {
+  LIGHT
+  AC
+  LOCK
+  SENSOR
+  SWITCH
+  CURTAIN
+  HEATER
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CHECKED_IN
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+enum PaymentProvider {
+  STRIPE
+  PAYPAL
+  BANK_TRANSFER
+  CASH
+}
+
+enum PaymentStatus {
+  PENDING
+  PROCESSING
+  SUCCEEDED
+  FAILED
+  CANCELLED
+  REFUNDED
+}
+
+// User & Authentication
+model User {
+  id            String         @id @default(uuid())
+  email         String         @unique
+  name          String?
+  password      String         // Hashed password
+  role          UserRole       @default(MEMBER)
+  image         String?        // Profile picture URL
+  phone         String?
+  company       String?
+
+  // Relations
+  memberships   Membership[]
+  bookings      Booking[]
+  payments      Payment[]
+
+  // Timestamps
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  @@index([email])
+}
+
+// Membership Plans
+model Membership {
+  id          String           @id @default(uuid())
+  userId      String
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type        MembershipType
+  status      MembershipStatus @default(PENDING)
+  startDate   DateTime
+  endDate     DateTime?
+  credits     Int?             // Hours/days credits
+  price       Decimal          @db.Decimal(10, 2)
+
+  // Relations
+  payments    Payment[]
+
+  // Timestamps
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@index([userId])
+  @@index([status])
+}
+
+// Workspace Spaces
+model Space {
+  id          String        @id @default(uuid())
+  name        String
+  description String?
+  type        SpaceType
+  capacity    Int           @default(1)
+  floor       Int?          @default(1)
+
+  // Pricing
+  priceHour   Decimal?      @db.Decimal(10, 2)
+  priceDay    Decimal?      @db.Decimal(10, 2)
+  priceMonth  Decimal?      @db.Decimal(10, 2)
+
+  // Status
+  isActive    Boolean       @default(true)
+
+  // Relations
+  devices     Device[]
+  bookings    Booking[]
+
+  // Timestamps
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@index([type])
+  @@index([isActive])
+}
+
+// IoT Devices (TuyaSmart)
+model Device {
+  id            String     @id @default(uuid())
+  spaceId       String?
+  space         Space?     @relation(fields: [spaceId], references: [id], onDelete: SetNull)
+
+  // TuyaSmart fields
+  tuyaDeviceId  String     @unique // Tuya Cloud device ID
+  tuyaProductId String?    // Tuya product ID
+
+  // Device info
+  name          String
+  type          DeviceType
+  description   String?
+
+  // Status
+  status        Json       // Device state from Tuya
+  isOnline      Boolean    @default(false)
+  lastSeen      DateTime?
+  batteryLevel  Int?       // For battery-powered devices
+
+  // Timestamps
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  @@index([spaceId])
+  @@index([tuyaDeviceId])
+  @@index([isOnline])
+}
+
+// Bookings
+model Booking {
+  id          String        @id @default(uuid())
+  userId      String
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  spaceId     String
+  space       Space         @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+
+  // Booking details
+  startTime   DateTime
+  endTime     DateTime
+  status      BookingStatus @default(PENDING)
+  purpose     String?       // Meeting purpose or note
+  attendees   Int           @default(1)
+
+  // Pricing
+  totalPrice  Decimal?      @db.Decimal(10, 2)
+
+  // Check-in/out
+  checkInAt   DateTime?
+  checkOutAt  DateTime?
+  qrCode      String?       // QR code for check-in
+
+  // Relations
+  payment     Payment?
+
+  // Timestamps
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@index([userId])
+  @@index([spaceId])
+  @@index([startTime])
+  @@index([status])
+}
+
+// Payments
+model Payment {
+  id            String           @id @default(uuid())
+  userId        String
+  user          User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Payment links
+  bookingId     String?          @unique
+  booking       Booking?         @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+  membershipId  String?
+  membership    Membership?      @relation(fields: [membershipId], references: [id], onDelete: SetNull)
+
+  // Payment details
+  amount        Decimal          @db.Decimal(10, 2)
+  currency      String           @default("BGN")
+  provider      PaymentProvider
+  providerId    String?          // Stripe/PayPal transaction ID
+
+  // Status
+  status        PaymentStatus    @default(PENDING)
+  failureReason String?
+
+  // Refunds
+  refundAmount  Decimal?         @db.Decimal(10, 2)
+  refundedAt    DateTime?
+
+  // Timestamps
+  paidAt        DateTime?
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  @@index([userId])
+  @@index([bookingId])
+  @@index([status])
+  @@index([providerId])
+}
+
+// Settings (for app configuration)
+model Setting {
+  id          String    @id @default(uuid())
+  key         String    @unique
+  value       Json      // Store any JSON value
+  description String?
+  isPublic    Boolean   @default(false) // Whether this setting can be accessed by clients
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
