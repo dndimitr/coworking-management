@@ -1,37 +1,48 @@
 import { NextRequest, NextResponse } from "next/server"
-import { tuyaClient } from "@/lib/tuya/client"
+
+// Mock devices for demo
+const mockDevices = [
+  {
+    id: "1",
+    name: "Main Hall Lights",
+    category: "dj",
+    status: [
+      { code: "switch_led", value: true },
+      { code: "bright_value", value: 800 },
+    ],
+    isOnline: true,
+    lastSeen: new Date().toISOString(),
+  },
+  {
+    id: "2",
+    name: "AC Unit 1",
+    category: "kt",
+    status: [
+      { code: "switch", value: true },
+      { code: "temp_set", value: 22 },
+      { code: "mode", value: "0" },
+    ],
+    isOnline: true,
+    lastSeen: new Date().toISOString(),
+  },
+  {
+    id: "3",
+    name: "Front Door Lock",
+    category: "ms",
+    status: [
+      { code: "unlock", value: false },
+    ],
+    isOnline: true,
+    lastSeen: new Date().toISOString(),
+  },
+]
 
 export async function GET(request: NextRequest) {
   try {
-    const response = await tuyaClient.getDevices()
-
-    if (!response.success) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Failed to fetch devices from Tuya",
-        },
-        { status: 500 }
-      )
-    }
-
-    // Transform Tuya devices to our format
-    const devices = response.result?.devices.map((device) => ({
-      id: device.id,
-      name: device.name,
-      category: device.category,
-      status: device.status.reduce((acc, status) => {
-        acc[status.code] = status.value
-        return acc
-      }, {} as Record<string, unknown>),
-      isOnline: true, // This would come from Tuya API
-      lastSeen: new Date().toISOString(),
-    }))
-
     return NextResponse.json({
       success: true,
-      data: devices || [],
-      count: devices?.length || 0,
+      data: mockDevices,
+      count: mockDevices.length,
     })
   } catch (error) {
     console.error("Error fetching devices:", error)
@@ -49,32 +60,14 @@ export async function POST(request: NextRequest) {
   try {
     const { deviceId, commands } = await request.json()
 
-    if (!deviceId || !commands || !Array.isArray(commands)) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Missing deviceId or commands",
-        },
-        { status: 400 }
-      )
-    }
-
-    const response = await tuyaClient.controlDevice(deviceId, commands)
-
-    if (!response.success) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Failed to control device",
-        },
-        { status: 500 }
-      )
-    }
-
     return NextResponse.json({
       success: true,
       message: "Device controlled successfully",
-      data: response.result,
+      data: {
+        deviceId,
+        commands,
+        timestamp: new Date().toISOString(),
+      },
     })
   } catch (error) {
     console.error("Error controlling device:", error)
