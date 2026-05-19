@@ -57,7 +57,7 @@ export async function GET(request: NextRequest) {
     })
 
     // Transform data for frontend
-    const transformedBookings = bookings.map((booking) => ({
+    const transformedBookings = bookings.map((booking: any) => ({
       id: booking.id,
       title: `${booking.user.name} - ${booking.space.name}`,
       start: booking.startTime,

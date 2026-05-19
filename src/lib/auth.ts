@@ -3,6 +3,30 @@ import CredentialsProvider from 'next-auth/providers/credentials'
 import bcrypt from 'bcryptjs'
 import { prisma } from './prisma'
 
+// Extend the User type to include role
+declare module 'next-auth' {
+  interface User {
+    role: string
+  }
+
+  interface Session {
+    user: {
+      id: string
+      role: string
+      email: string
+      name?: string | null
+      image?: string | null
+    }
+  }
+}
+
+declare module 'next-auth/jwt' {
+  interface JWT {
+    id: string
+    role: string
+  }
+}
+
 export const authOptions: NextAuthOptions = {
   providers: [
     CredentialsProvider({

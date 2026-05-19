@@ -1,3 +1,5 @@
+"use client"
+
 import { useState } from "react"
 import { format, addDays, startOfDay, endOfDay } from "date-fns"
 import { Clock, User } from "lucide-react"

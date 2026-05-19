@@ -27,20 +27,20 @@ export default function BookingsPage() {
         <div className="space-y-6">
           <div className="bg-white rounded-lg shadow-sm p-6">
             <h3 className="text-lg font-semibold text-gray-800 mb-4">Quick Stats</h3>
-            <div className="space-y-4"
-              <div className="flex items-center justify-between"
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
                 <span className="text-gray-600">Total Today</span>
                 <span className="font-semibold">12</span>
               </div>
-              <div className="flex items-center justify-between"
+              <div className="flex items-center justify-between">
                 <span className="text-gray-600">Checked In</span>
                 <span className="font-semibold text-green-600">8</span>
               </div>
-              <div className="flex items-center justify-between"
+              <div className="flex items-center justify-between">
                 <span className="text-gray-600">Upcoming</span>
                 <span className="font-semibold text-blue-600">4</span>
               </div>
-              <div className="flex items-center justify-between"
+              <div className="flex items-center justify-between">
                 <span className="text-gray-600">Cancelled</span>
                 <span className="font-semibold text-red-600">0</span>
               </div>
@@ -49,7 +49,7 @@ export default function BookingsPage() {
 
           <div className="bg-white rounded-lg shadow-sm p-6">
             <h3 className="text-lg font-semibold text-gray-800 mb-4">Space Availability</h3>
-            <div className="space-y-3"
+            <div className="space-y-3">
               {[
                 { name: "Desks", total: 20, occupied: 12 },
                 { name: "Meeting Rooms", total: 4, occupied: 2 },
